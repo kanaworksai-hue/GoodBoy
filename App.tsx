@@ -131,11 +131,14 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Audio Hint */}
+      {/* Audio Start Button */}
       {!audioStarted && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 animate-pulse pointer-events-none text-white/50 flex flex-col items-center">
-            <span className="text-xs tracking-widest uppercase">Tap to unmute</span>
-        </div>
+        <button
+          onClick={handleStartAudio}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 px-6 py-3 bg-cyan-500/80 hover:bg-cyan-400 active:bg-cyan-600 text-white font-bold rounded-full text-lg shadow-lg animate-pulse border-2 border-cyan-200/50 backdrop-blur-sm cursor-pointer"
+        >
+          🔊 Tap to Start
+        </button>
       )}
 
       {/* Round Clear Reward Overlay */}
