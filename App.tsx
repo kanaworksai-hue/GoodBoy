@@ -42,19 +42,16 @@ const App: React.FC = () => {
        if (e.touches.length > 0) {
         updatePos(e.touches[0].clientX, e.touches[0].clientY);
       }
-      handleStartAudio(); // Also start audio on touch
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('click', handleStartAudio);
-    
+
     // Touch events for mobile
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('touchstart', handleTouchStart, { passive: false });
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('click', handleStartAudio);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchstart', handleTouchStart);
     };
@@ -133,12 +130,15 @@ const App: React.FC = () => {
 
       {/* Audio Start Button */}
       {!audioStarted && (
-        <button
-          onClick={handleStartAudio}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 px-6 py-3 bg-cyan-500/80 hover:bg-cyan-400 active:bg-cyan-600 text-white font-bold rounded-full text-lg shadow-lg animate-pulse border-2 border-cyan-200/50 backdrop-blur-sm cursor-pointer"
-        >
-          🔊 Tap to Start
-        </button>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
+          <button
+            onClick={handleStartAudio}
+            className="px-6 py-3 bg-cyan-500/90 hover:bg-cyan-400 active:bg-cyan-600 text-white font-bold rounded-full text-lg shadow-lg animate-pulse border-2 border-cyan-200/50 backdrop-blur-sm cursor-pointer"
+          >
+            🔊 Tap to Start
+          </button>
+          <span className="text-white/60 text-xs">iPhone: Turn off silent mode</span>
+        </div>
       )}
 
       {/* Round Clear Reward Overlay */}
