@@ -375,8 +375,8 @@ const FishBowl: React.FC<FishBowlProps> = ({ mousePos, wave, medalCount, onCatch
       const cy = canvas.height / 2;
       const radius = radiusRef.current;
 
-      // --- Spawn Fish if Idle (Every 2 seconds), Max 12 Fish ---
-      if (now - lastCatchTimeRef.current > 2000 && fishRef.current.length < 12) {
+      // --- Spawn Fish if Idle (Every 2 seconds), Max 15 Fish ---
+      if (now - lastCatchTimeRef.current > 2000 && fishRef.current.length < 15) {
         const availableColorsCount = Math.min(UNLOCKABLE_COLORS.length, 1 + medalCount);
         const activePalette = UNLOCKABLE_COLORS.slice(0, availableColorsCount);
         const colorSet = activePalette[Math.floor(Math.random() * activePalette.length)];

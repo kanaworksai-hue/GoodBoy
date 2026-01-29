@@ -11,6 +11,7 @@ const App: React.FC = () => {
   const [wave, setWave] = useState(0); 
   const [showReward, setShowReward] = useState(false);
   const [gameWon, setGameWon] = useState(false);
+  const [endingType, setEndingType] = useState<'standard' | 'master'>('standard');
   const [audioStarted, setAudioStarted] = useState(false);
 
   // Initialize Audio on first interaction
@@ -42,16 +43,19 @@ const App: React.FC = () => {
        if (e.touches.length > 0) {
         updatePos(e.touches[0].clientX, e.touches[0].clientY);
       }
+      handleStartAudio(); // Also start audio on touch
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-
+    window.addEventListener('click', handleStartAudio);
+    
     // Touch events for mobile
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('touchstart', handleTouchStart, { passive: false });
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('click', handleStartAudio);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchstart', handleTouchStart);
     };
@@ -63,11 +67,11 @@ const App: React.FC = () => {
     soundManager.playCatch();
     setScore(prev => {
       const newScore = prev - 10;
-      
-      // Check Win Condition: Loss reaches -600
-      if (newScore <= -600) {
-        setGameWon(true);
-        soundManager.playGameWin();
+      // Hidden Ending Check: Score > 880 (Absolute value)
+      if (Math.abs(newScore) >= 880) {
+         setEndingType('master');
+         setGameWon(true);
+         soundManager.playGameWin();
       }
       return newScore;
     });
@@ -75,6 +79,14 @@ const App: React.FC = () => {
 
   const handleAllCaught = useCallback(() => {
     if (gameWon) return;
+
+    // Win condition: Finish 6 waves (0 to 5)
+    if (wave >= 5) {
+      setEndingType('standard');
+      setGameWon(true);
+      soundManager.playGameWin();
+      return;
+    }
 
     // Show Fireworks and Medal reward, Play Meow
     setShowReward(true);
@@ -87,7 +99,7 @@ const App: React.FC = () => {
       setWave(prev => prev + 1); 
       setShowReward(false);
     }, 4000);
-  }, [gameWon]);
+  }, [gameWon, wave]);
 
   const resetGame = useCallback(() => {
     setScore(0);
@@ -95,6 +107,7 @@ const App: React.FC = () => {
     setWave(0);
     setGameWon(false);
     setShowReward(false);
+    setEndingType('standard');
     soundManager.resume(); // Restart music
   }, []);
 
@@ -115,7 +128,7 @@ const App: React.FC = () => {
         
         <div className="text-right">
           <div className="text-3xl font-mono font-bold drop-shadow-md mb-2 text-red-400">
-            You has lost $ {Math.abs(score)}
+            Owner has lost $ {Math.abs(score)}
           </div>
           <div className="flex gap-2 justify-end">
              {Array.from({ length: medals }).map((_, i) => (
@@ -128,16 +141,10 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* Audio Start Button */}
+      {/* Audio Hint */}
       {!audioStarted && (
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2">
-          <button
-            onClick={handleStartAudio}
-            className="px-6 py-3 bg-cyan-500/90 hover:bg-cyan-400 active:bg-cyan-600 text-white font-bold rounded-full text-lg shadow-lg animate-pulse border-2 border-cyan-200/50 backdrop-blur-sm cursor-pointer"
-          >
-            🔊 Tap to Start
-          </button>
-          <span className="text-white/60 text-xs">iPhone: Turn off silent mode</span>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 animate-pulse pointer-events-none text-white/50 flex flex-col items-center">
+            <span className="text-xs tracking-widest uppercase">Tap to unmute</span>
         </div>
       )}
 
@@ -154,12 +161,17 @@ const App: React.FC = () => {
       {/* Win Screen */}
       {gameWon && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/70 animate-in fade-in duration-1000 cursor-auto pointer-events-auto">
-           <h2 className="text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-orange-500 drop-shadow-[0_4px_0_rgba(0,0,0,1)] stroke-black mb-6 animate-bounce">
-             GOOD BOY
+           <h2 className={`text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-b ${endingType === 'master' ? 'from-purple-300 to-pink-500' : 'from-yellow-300 to-orange-500'} drop-shadow-[0_4px_0_rgba(0,0,0,1)] stroke-black mb-6 animate-bounce text-center`}>
+             {endingType === 'master' ? 'Fishing Cat Master' : 'GOOD BOY'}
            </h2>
            <div className="text-2xl text-white font-mono bg-red-600 px-8 py-4 rounded-lg border-4 border-white transform rotate-[-2deg] mb-8 text-center max-w-xl">
-              <p className="text-xl opacity-80 mb-2">You has lost $ {Math.abs(score)}</p>
-              <p className="font-bold text-3xl">"I will never keep goldfish again,<br/>Your Owner"</p>
+              <p className="text-xl opacity-80 mb-2">Owner has lost $ {Math.abs(score)}</p>
+              <p className="font-bold text-3xl">
+                {endingType === 'master' 
+                  ? "Fishing is all about patience… and sharp claws."
+                  : <>"I will keep playful again.<br/>See you later!"</>
+                }
+              </p>
            </div>
            
            <button 
