@@ -4,14 +4,15 @@ import CatPawCursor from './components/CatPawCursor';
 import Fireworks from './components/Fireworks';
 import { soundManager } from './utils/SoundManager';
 
+type GameStatus = 'playing' | 'won_standard' | 'won_master' | 'lost_bitten';
+
 const App: React.FC = () => {
   const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
   const [score, setScore] = useState(0); // Represents USD debt
   const [medals, setMedals] = useState(0);
   const [wave, setWave] = useState(0); 
   const [showReward, setShowReward] = useState(false);
-  const [gameWon, setGameWon] = useState(false);
-  const [endingType, setEndingType] = useState<'standard' | 'master'>('standard');
+  const [gameStatus, setGameStatus] = useState<GameStatus>('playing');
   const [audioStarted, setAudioStarted] = useState(false);
 
   // Initialize Audio on first interaction
@@ -62,29 +63,35 @@ const App: React.FC = () => {
   }, [handleStartAudio]);
 
   const handleCatch = useCallback(() => {
-    if (gameWon) return;
+    if (gameStatus !== 'playing') return;
 
     soundManager.playCatch();
     setScore(prev => {
       const newScore = prev - 10;
       // Hidden Ending Check: Score > 880 (Absolute value)
       if (Math.abs(newScore) >= 880) {
-         setEndingType('master');
-         setGameWon(true);
+         setGameStatus('won_master');
          soundManager.playGameWin();
       }
       return newScore;
     });
-  }, [gameWon]);
+  }, [gameStatus]);
+
+  const handleBitten = useCallback(() => {
+    if (gameStatus !== 'playing') return;
+    setGameStatus('lost_bitten');
+    soundManager.playBite();
+  }, [gameStatus]);
 
   const handleAllCaught = useCallback(() => {
-    if (gameWon) return;
+    if (gameStatus !== 'playing') return;
 
     // Win condition: Finish 6 waves (0 to 5)
     if (wave >= 5) {
-      setEndingType('standard');
-      setGameWon(true);
-      soundManager.playGameWin();
+      if (gameStatus === 'playing') { // Only win if not already master won
+          setGameStatus('won_standard');
+          soundManager.playGameWin();
+      }
       return;
     }
 
@@ -99,17 +106,18 @@ const App: React.FC = () => {
       setWave(prev => prev + 1); 
       setShowReward(false);
     }, 4000);
-  }, [gameWon, wave]);
+  }, [gameStatus, wave]);
 
   const resetGame = useCallback(() => {
     setScore(0);
     setMedals(0);
     setWave(0);
-    setGameWon(false);
+    setGameStatus('playing');
     setShowReward(false);
-    setEndingType('standard');
     soundManager.resume(); // Restart music
   }, []);
+
+  const isGameEnded = gameStatus !== 'playing';
 
   return (
     <div 
@@ -122,7 +130,7 @@ const App: React.FC = () => {
             GOOD BOY
           </h1>
           <p className="text-cyan-300 text-sm mt-1 italic opacity-80">
-            {audioStarted ? "Don't touch my fish!" : "Tap/Click to start music"}
+            {audioStarted ? "Don't touch the turtle!" : "Tap/Click to start music"}
           </p>
         </div>
         
@@ -149,7 +157,7 @@ const App: React.FC = () => {
       )}
 
       {/* Round Clear Reward Overlay */}
-      {showReward && !gameWon && (
+      {showReward && !isGameEnded && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-500">
            <div className="text-6xl mb-4 animate-bounce">🐱🏅</div>
            <h2 className="text-5xl font-bold text-yellow-300 drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] stroke-black">
@@ -158,19 +166,23 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Win Screen */}
-      {gameWon && (
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/70 animate-in fade-in duration-1000 cursor-auto pointer-events-auto">
-           <h2 className={`text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-b ${endingType === 'master' ? 'from-purple-300 to-pink-500' : 'from-yellow-300 to-orange-500'} drop-shadow-[0_4px_0_rgba(0,0,0,1)] stroke-black mb-6 animate-bounce text-center`}>
-             {endingType === 'master' ? 'Fishing Cat Master' : 'GOOD BOY'}
+      {/* Win/Loss Screen */}
+      {isGameEnded && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/80 animate-in fade-in duration-1000 cursor-auto pointer-events-auto">
+           {/* Title */}
+           <h2 className={`text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-b drop-shadow-[0_4px_0_rgba(0,0,0,1)] stroke-black mb-6 animate-bounce text-center
+             ${gameStatus === 'lost_bitten' ? 'from-red-500 to-red-900' : (gameStatus === 'won_master' ? 'from-purple-300 to-pink-500' : 'from-yellow-300 to-orange-500')}
+           `}>
+             {gameStatus === 'lost_bitten' ? 'OUCH!' : (gameStatus === 'won_master' ? 'Fishing Cat Master' : 'GOOD BOY')}
            </h2>
+
+           {/* Message Card */}
            <div className="text-2xl text-white font-mono bg-red-600 px-8 py-4 rounded-lg border-4 border-white transform rotate-[-2deg] mb-8 text-center max-w-xl">
               <p className="text-xl opacity-80 mb-2">Owner has lost $ {Math.abs(score)}</p>
               <p className="font-bold text-3xl">
-                {endingType === 'master' 
-                  ? "Fishing is all about patience… and sharp claws."
-                  : <>"I will keep playful again.<br/>See you later!"</>
-                }
+                {gameStatus === 'lost_bitten' && "OUCH! The turtle bit the cat’s finger!\nThe fish is safe!"}
+                {gameStatus === 'won_standard' && <>"I will keep playful again.<br/>See you later!"</>}
+                {gameStatus === 'won_master' && "Fishing is all about patience… and sharp claws."}
               </p>
            </div>
            
@@ -181,13 +193,15 @@ const App: React.FC = () => {
              }}
              className="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-white font-bold rounded-full text-xl shadow-lg transition-transform hover:scale-105 active:scale-95 border-2 border-cyan-200"
            >
-             Play Again
+             Try Again
            </button>
         </div>
       )}
 
       {/* Fireworks (On Round Clear or Win) */}
-      {(showReward || gameWon) && <Fireworks duration={gameWon ? 5000 : undefined} />}
+      {(showReward || gameStatus === 'won_standard' || gameStatus === 'won_master') && 
+        <Fireworks duration={isGameEnded ? 5000 : undefined} />
+      }
 
       {/* Main Canvas */}
       <FishBowl 
@@ -196,10 +210,12 @@ const App: React.FC = () => {
         medalCount={medals}
         onCatch={handleCatch}
         onAllCaught={handleAllCaught}
+        onBitten={handleBitten}
+        isGameOver={isGameEnded}
       />
 
-      {/* Custom Cursor (Hide when game won or on touch devices if possible, though strict media query in JS is complex, simple rendering is fine) */}
-      {!gameWon && <CatPawCursor x={mousePos.x} y={mousePos.y} />}
+      {/* Custom Cursor */}
+      {!isGameEnded && <CatPawCursor x={mousePos.x} y={mousePos.y} />}
     </div>
   );
 };

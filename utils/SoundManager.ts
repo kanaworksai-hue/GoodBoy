@@ -1,3 +1,4 @@
+
 export class SoundManager {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -143,6 +144,61 @@ export class SoundManager {
 
     osc.start(t);
     osc.stop(t + 0.6);
+  }
+  
+  // --- SFX: Shark Bite ---
+  playChomp() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    
+    // Low noise burst
+    const bufferSize = this.ctx.sampleRate * 0.1; 
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 300;
+    
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.4, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    
+    noise.start(t);
+  }
+
+  // --- SFX: Hurt/Bitten ---
+  playBite() {
+    if (!this.ctx || !this.masterGain) return;
+    this.isMusicPlaying = false; 
+    if (this.musicTimeout) clearTimeout(this.musicTimeout);
+    
+    const t = this.ctx.currentTime;
+    
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, t);
+    osc.frequency.linearRampToValueAtTime(100, t + 0.3);
+    
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+    
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    
+    osc.start(t);
+    osc.stop(t + 0.3);
   }
 
   // --- SFX: Round Clear / Medal (Fanfare, keep music) ---
